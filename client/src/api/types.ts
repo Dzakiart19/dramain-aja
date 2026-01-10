@@ -1,18 +1,20 @@
 export interface Drama {
-  id: string;
+  fakeId: string; // Used as ID in API responses
   title: string;
-  poster: string;
-  rating: number;
-  episodes: number;
-  status: string;
+  coverImgUrl: string; // poster field name from API
+  rating?: number; // might not exist in list
+  hotValue?: string; // used in rank
+  uploadOfEpisodes?: number; // episode count
+  introduce?: string;
+  compilationsTags?: string[];
+  tagList?: string[];
 }
 
 export interface Episode {
-  id: string;
+  fakeId: string;
   number: number;
   title: string;
-  thumbnail: string;
-  videoFakeId: string;
+  introduce?: string;
 }
 
 export interface Subtitle {
@@ -20,42 +22,37 @@ export interface Subtitle {
   url: string;
 }
 
-export interface HomeResponse {
-  dramaList: Drama[];
-  total: number;
-}
+export interface HomeResponse extends Array<Drama> {}
 
 export interface SearchResponse {
-  dramaList: Drama[];
+  compilationsInfoList: Drama[];
   total: number;
 }
 
 export interface RankResponse {
-  rankList: Drama[];
-  total: number;
+  rankCode: string[];
+  compilationsInfoList: Drama[];
 }
 
 export interface DramaDetailResponse {
-  id: string;
+  fakeId: string;
   title: string;
-  synopsis: string;
-  cast: string[];
-  genre: string[];
-  poster: string;
-  rating: number;
-  episodes: number;
-  status: string;
+  introduce: string;
+  coverImgUrl: string;
+  uploadOfEpisodes: number;
+  compilationsTags?: string[];
 }
 
 export interface EpisodesResponse {
   episodes: Episode[];
+  dramaId?: string;
 }
+
+export type EpisodesResult = EpisodesResponse | Episode[];
 
 export interface VideoUrlResponse {
   url: string;
   subtitles: Subtitle[];
 }
 
-export interface RecommendResponse {
-  recommendList: Drama[];
-}
+export interface RecommendResponse extends Array<Drama> {}
