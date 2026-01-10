@@ -312,18 +312,25 @@ function renderNotFound() {
 }
 
 function dramaCard(drama: Drama, rank?: number) {
+  // Try to find episode count from various possible fields
+  const epCount = drama.uploadOfEpisodes || drama.totalOfEpisodes || drama.updateOfEpisodes || 0;
+  
   return `
-    <a href="#/drama/${drama.fakeId}" class="group relative block rounded-lg overflow-hidden bg-gray-900 aspect-[3/4]">
-      <img src="${drama.coverImgUrl}" loading="lazy" class="w-full h-full object-cover transition duration-300 group-hover:scale-105 opacity-80 group-hover:opacity-100" />
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90"></div>
+    <a href="#/drama/${drama.fakeId}" class="group relative block rounded-2xl overflow-hidden bg-gray-900 aspect-[3/4] shadow-lg border border-white/5">
+      <img src="${drama.coverImgUrl}" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110 opacity-70 group-hover:opacity-100" />
+      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90"></div>
       
-      ${rank ? `<div class="absolute top-2 left-2 bg-red-600 text-white font-bold w-7 h-7 flex items-center justify-center rounded-full z-10 shadow-lg border border-white/20 text-xs">${rank}</div>` : ''}
+      ${rank ? `
+        <div class="absolute top-3 left-3 bg-red-600 text-white font-black w-8 h-8 flex items-center justify-center rounded-xl z-10 shadow-xl border border-white/20 text-sm">
+          ${rank}
+        </div>
+      ` : ''}
       
-      <div class="absolute bottom-0 left-0 right-0 p-3">
-        <h3 class="text-sm font-bold truncate group-hover:text-red-500 transition">${drama.title}</h3>
-        <div class="flex justify-between items-center text-xs text-gray-400 mt-1">
-          <span>🔥 ${drama.hotValue || ''}</span>
-          <span>${drama.uploadOfEpisodes || 0} Eps</span>
+      <div class="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 group-hover:translate-y-0 transition duration-300">
+        <h3 class="text-base font-bold text-white mb-2 line-clamp-2 leading-tight group-hover:text-red-500 transition">${drama.title}</h3>
+        <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+          <span class="flex items-center gap-1"><span class="text-orange-500 text-xs">🔥</span> ${drama.hotValue || 'NEW'}</span>
+          <span class="bg-white/10 px-2 py-0.5 rounded-md">${epCount} Eps</span>
         </div>
       </div>
     </a>

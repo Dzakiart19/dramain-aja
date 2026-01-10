@@ -22,7 +22,6 @@ export class Navbar {
         <div class="hidden md:flex gap-6 font-medium">
           <a href="#/" class="hover:text-red-500 transition">Home</a>
           <a href="#/rank" class="hover:text-red-500 transition">Rank</a>
-          <a href="#/bookmark" class="hover:text-red-500 transition">Bookmark</a>
         </div>
         
         <!-- Mobile Menu Button -->
@@ -37,7 +36,6 @@ export class Navbar {
                  placeholder="Cari drama...">
             <a href="#/" class="block py-2">Home</a>
             <a href="#/rank" class="block py-2">Rank</a>
-            <a href="#/bookmark" class="block py-2">Bookmark</a>
          </div>
       </div>
     `;
