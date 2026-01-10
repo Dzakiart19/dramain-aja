@@ -171,7 +171,63 @@ async function renderDetail(id: string) {
   app.innerHTML = html;
 }
 
+let currentPlayer: VideoPlayer | null = null;
+
 async function renderPlayer(playId: string, seq: number) {
+  // If we're already on the player page for the same drama, just update the episode
+  if (currentPlayer && document.getElementById('video-container')) {
+    const detail = await RadReelAPI.getDramaDetail(playId);
+    const episodesData = await RadReelAPI.getEpisodes(playId);
+    const episodesRaw = Array.isArray(episodesData) ? episodesData : (episodesData.episodes || []);
+    const episodes = episodesRaw.map((ep: any, index: number) => ({
+      number: typeof ep.sequence === 'number' ? ep.sequence + 1 : index + 1,
+      sequence: typeof ep.sequence === 'number' ? ep.sequence : index
+    }));
+    const currentEp = episodes.find(e => e.sequence === seq) || episodes[0];
+    
+    // Update UI elements without full re-render
+    const epTitle = document.querySelector('.text-red-500.font-bold.text-sm');
+    if (epTitle) epTitle.textContent = `Episode ${currentEp.number}`;
+    
+    const epDisplay = document.querySelector('.bg-red-600.rounded-2xl.flex.items-center.justify-center');
+    if (epDisplay) epDisplay.textContent = String(currentEp.number);
+    
+    const epInfo = document.querySelector('.text-white.font-bold:not(.text-xl)');
+    if (epInfo && epInfo.previousElementSibling?.textContent?.includes('Sekarang')) {
+      epInfo.textContent = `Episode ${currentEp.number}`;
+    }
+
+    // Update navigation buttons
+    const navContainer = document.querySelector('.flex.gap-3');
+    if (navContainer) {
+      const nextEp = episodes.find(e => e.sequence === seq + 1);
+      navContainer.innerHTML = `
+        ${seq > 0 ? `
+          <a href="#/play/${playId}?seq=${seq - 1}" class="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-2xl font-bold transition flex items-center gap-2 border border-white/5">
+            ⏮ Prev
+          </a>
+        ` : ''}
+        ${nextEp ? `
+          <a id="next-episode-btn" href="#/play/${playId}?seq=${seq + 1}" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-2xl font-black transition flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95">
+            Next Episode ⏭
+          </a>
+        ` : ''}
+      `;
+    }
+
+    // Update episode grid highlight
+    document.querySelectorAll('.grid-cols-4 a').forEach((a, i) => {
+      if (i === seq) {
+        a.className = 'block aspect-square bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/20 border rounded-2xl flex items-center justify-center transition font-black text-lg';
+      } else {
+        a.className = 'block aspect-square bg-white/5 hover:bg-white/10 border-white/5 text-gray-400 border rounded-2xl flex items-center justify-center transition font-black text-lg';
+      }
+    });
+
+    currentPlayer.changeEpisode(playId, seq);
+    return;
+  }
+
   const detail = await RadReelAPI.getDramaDetail(playId);
   const episodesData = await RadReelAPI.getEpisodes(playId);
   const episodesRaw = Array.isArray(episodesData) ? episodesData : (episodesData.episodes || []);
@@ -242,7 +298,7 @@ async function renderPlayer(playId: string, seq: number) {
     </div>
   `;
   app.innerHTML = html;
-  new VideoPlayer('#video-container', playId, seq);
+  currentPlayer = new VideoPlayer('#video-container', playId, seq);
 }
 
 function renderNotFound() {

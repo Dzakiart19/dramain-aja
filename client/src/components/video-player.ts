@@ -13,6 +13,43 @@ export class VideoPlayer {
     this.init(containerId);
   }
 
+  public async changeEpisode(playId: string, seq: number) {
+    this.playId = playId;
+    this.seq = seq;
+    try {
+      const videoData = await RadReelAPI.getVideoUrl(this.playId, this.seq);
+      if (!videoData || !videoData.url) throw new Error("API tidak memberikan URL video.");
+
+      this.player.src({
+        src: videoData.url,
+        type: 'application/x-mpegURL'
+      });
+      
+      // Update subtitles if provided
+      if (videoData.subtitles) {
+        const oldTracks = this.player.remoteTextTracks();
+        let i = oldTracks.length;
+        while (i--) {
+          this.player.removeRemoteTextTrack(oldTracks[i]);
+        }
+        
+        videoData.subtitles.forEach(sub => {
+          this.player.addRemoteTextTrack({
+            kind: 'subtitles',
+            src: sub.url,
+            srclang: sub.language,
+            label: sub.language.toUpperCase(),
+            default: sub.language === 'id'
+          }, false);
+        });
+      }
+      
+      this.player.play();
+    } catch (e) {
+      console.error("Change Episode Error:", e);
+    }
+  }
+
   private async init(containerId: string) {
     const container = document.querySelector(containerId);
     if (!container) return;
