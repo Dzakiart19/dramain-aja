@@ -4,11 +4,11 @@ import { RadReelAPI } from '../api/radreel';
 
 export class VideoPlayer {
   private player: any;
-  private videoFakeId: string;
+  private playId: string;
   private seq: number;
 
-  constructor(containerId: string, videoFakeId: string, seq = 0) {
-    this.videoFakeId = videoFakeId;
+  constructor(containerId: string, playId: string, seq = 0) {
+    this.playId = playId;
     this.seq = seq;
     this.init(containerId);
   }
@@ -18,13 +18,13 @@ export class VideoPlayer {
     if (!container) return;
     
     try {
-      const videoData = await RadReelAPI.getVideoUrl(this.videoFakeId, this.seq);
+      const videoData = await RadReelAPI.getVideoUrl(this.playId, this.seq);
 
       if (!videoData || !videoData.url) {
-        throw new Error("No video URL found");
+        throw new Error("API tidak memberikan URL video.");
       }
 
-      const videoId = `player-${this.videoFakeId}`;
+      const videoId = `player-${Math.random().toString(36).substr(2, 9)}`;
       container.innerHTML = `<video id="${videoId}" class="video-js w-full h-full vjs-big-play-centered"></video>`;
 
       this.player = videojs(videoId, {
@@ -32,7 +32,7 @@ export class VideoPlayer {
         autoplay: true,
         preload: 'auto',
         fluid: true,
-        playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
+        playbackRates: [0.5, 1, 1.25, 1.5, 2],
         controlBar: {
           skipButtons: { forward: 10, backward: 10 },
           volumePanel: { inline: false },
@@ -45,24 +45,26 @@ export class VideoPlayer {
         type: 'application/x-mpegURL'
       });
 
-      videoData.subtitles?.forEach(sub => {
-        this.player.addRemoteTextTrack({
-          kind: 'subtitles',
-          src: sub.url,
-          srclang: sub.language,
-          label: sub.language.toUpperCase(),
-          default: sub.language === 'id'
-        }, false);
-      });
+      if (videoData.subtitles) {
+        videoData.subtitles.forEach(sub => {
+          this.player.addRemoteTextTrack({
+            kind: 'subtitles',
+            src: sub.url,
+            srclang: sub.language,
+            label: sub.language.toUpperCase(),
+            default: sub.language === 'id'
+          }, false);
+        });
+      }
 
       this.setupKeyboard();
-      this.setupProgress();
     } catch (e) {
-      console.error("Failed to load video", e);
-      container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-red-500 p-4 text-center">
-        <p class="text-xl font-bold mb-2">Gagal memuat video</p>
-        <p class="text-sm opacity-70">${(e as Error).message}</p>
-        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg">Coba Lagi</button>
+      console.error("Video Player Error:", e);
+      container.innerHTML = `<div class="flex flex-col items-center justify-center h-full bg-gray-900 text-red-500 p-8 text-center rounded-xl border border-red-900/30">
+        <div class="text-5xl mb-4">⚠️</div>
+        <p class="text-xl font-bold mb-2">Gagal Memutar Video</p>
+        <p class="text-sm text-gray-400 mb-6 max-w-xs">${(e as Error).message}</p>
+        <button onclick="location.reload()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full font-bold transition">Coba Lagi</button>
       </div>`;
     }
   }

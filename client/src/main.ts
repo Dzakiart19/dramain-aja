@@ -99,49 +99,70 @@ async function renderDetail(id: string) {
   const episodesData = await RadReelAPI.getEpisodes(id);
   
   const episodesRaw = Array.isArray(episodesData) ? episodesData : (episodesData.episodes || []);
-  const episodes = episodesRaw.map((ep: any) => ({
-    fakeId: ep.videoFakeId || ep.fakeId,
-    number: typeof ep.sequence === 'number' ? ep.sequence + 1 : (ep.number || 1),
-    title: ep.title,
-    sequence: typeof ep.sequence === 'number' ? ep.sequence : 0
-  }));
   
-  console.log('Mapped episodes:', episodes);
+  // Create a clean list of episodes
+  const episodes = episodesRaw.map((ep: any, index: number) => {
+    // Priority for sequence: ep.sequence, then index, then ep.number - 1
+    const sequence = typeof ep.sequence === 'number' ? ep.sequence : index;
+    return {
+      playId: detail.fakeId,
+      number: typeof ep.sequence === 'number' ? ep.sequence + 1 : (ep.number || index + 1),
+      title: ep.title || `Episode ${index + 1}`,
+      sequence: sequence
+    };
+  });
+  
+  console.log('Final episodes map:', episodes);
 
   let html = `
-    <div class="relative min-h-[50vh] w-full bg-black">
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10"></div>
-      <img src="${detail.coverImgUrl}" class="w-full h-full absolute inset-0 object-cover object-top opacity-30" />
+    <div class="relative min-h-[60vh] w-full bg-black">
+      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10"></div>
+      <img src="${detail.coverImgUrl}" class="w-full h-full absolute inset-0 object-cover object-top opacity-40" />
       
-      <div class="relative p-6 z-20 container mx-auto flex flex-col md:flex-row gap-6 items-end pt-24">
-        <img src="${detail.coverImgUrl}" class="w-32 md:w-48 rounded-lg shadow-2xl border border-white/10" />
-        <div class="flex-1">
-          <h1 class="text-4xl font-bold mb-2 text-white">${detail.title}</h1>
-          <div class="flex flex-wrap gap-2 mb-4 text-sm text-gray-300">
-             <span class="bg-red-600 px-2 py-0.5 rounded text-white font-bold">${detail.uploadOfEpisodes || episodes.length} Eps</span>
-             <span class="bg-white/10 px-2 py-0.5 rounded">${detail.compilationsTags?.join(', ') || ''}</span>
-          </div>
-          <p class="text-gray-300 max-w-2xl mb-6 text-sm md:text-base leading-relaxed">${detail.introduce || ''}</p>
+      <div class="relative p-6 z-20 container mx-auto flex flex-col md:flex-row gap-8 items-end pt-32 pb-12">
+        <div class="w-40 md:w-64 shrink-0 shadow-2xl rounded-xl overflow-hidden border border-white/10">
+          <img src="${detail.coverImgUrl}" class="w-full h-full object-cover" />
+        </div>
+        
+        <div class="flex-1 text-center md:text-left">
+          <h1 class="text-3xl md:text-5xl font-black mb-4 text-white drop-shadow-lg">${detail.title}</h1>
           
-          ${episodes.length > 0 && episodes[0].fakeId ? `
-            <a href="#/play/${episodes[0].fakeId}?seq=${episodes[0].sequence}" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold inline-flex items-center gap-2 transition transform hover:scale-105">
-              ▶ Play Episode 1
-            </a>
-          ` : ''}
+          <div class="flex flex-wrap justify-center md:justify-start gap-3 mb-6 text-sm">
+             <span class="bg-red-600 px-3 py-1 rounded-full text-white font-bold shadow-lg">${detail.uploadOfEpisodes || episodes.length} Episodes</span>
+             <span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-white border border-white/10">⭐ ${detail.compositeRating || '8.5'}</span>
+             ${(detail.compilationsTags || []).map(tag => `<span class="bg-white/10 px-3 py-1 rounded-full text-gray-300 border border-white/5">${tag}</span>`).join('')}
+          </div>
+          
+          <p class="text-gray-300 max-w-3xl mb-8 text-sm md:text-lg leading-relaxed line-clamp-4 md:line-clamp-none">
+            ${detail.introduce || 'Tidak ada sinopsis tersedia.'}
+          </p>
+          
+          <div class="flex flex-wrap justify-center md:justify-start gap-4">
+            ${episodes.length > 0 ? `
+              <a href="#/play/${episodes[0].playId}?seq=${episodes[0].sequence}" class="bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-full font-black text-lg inline-flex items-center gap-3 transition transform hover:scale-105 active:scale-95 shadow-xl">
+                <span class="text-2xl">▶</span> MULAI NONTON
+              </a>
+            ` : ''}
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="container mx-auto px-4 py-8">
-      <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-        <span class="w-1 h-6 bg-red-600 rounded-full"></span>
-        Daftar Episode
-      </h3>
-      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+    <div class="container mx-auto px-4 py-12">
+      <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+        <h3 class="text-2xl font-bold flex items-center gap-3">
+          <span class="w-2 h-8 bg-red-600 rounded-full"></span>
+          Daftar Episode
+        </h3>
+        <span class="text-gray-500 font-medium">${episodes.length} Tersedia</span>
+      </div>
+      
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-4">
         ${episodes.map(ep => `
-          <a href="#/play/${ep.fakeId || ''}?seq=${ep.sequence}" class="block bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-600 rounded-lg p-3 transition group text-center">
-            <div class="text-gray-500 text-[10px] uppercase tracking-wider mb-1 group-hover:text-red-400">Episode</div>
-            <div class="font-bold text-lg group-hover:text-white">${ep.number}</div>
+          <a href="#/play/${ep.playId}?seq=${ep.sequence}" class="block aspect-square bg-white/5 hover:bg-red-600 border border-white/10 hover:border-red-500 rounded-2xl flex flex-col items-center justify-center transition group relative overflow-hidden">
+            <div class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1 group-hover:text-white/70">EPS</div>
+            <div class="text-2xl font-black group-hover:text-white group-hover:scale-125 transition duration-300">${ep.number}</div>
+            <div class="absolute inset-0 bg-red-600 opacity-0 group-hover:opacity-10 transition pointer-events-none"></div>
           </a>
         `).join('')}
       </div>

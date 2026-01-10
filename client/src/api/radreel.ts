@@ -71,37 +71,41 @@ export class RadReelAPI {
     return this.request<EpisodesResult>(`/episodes/${dramaId}`);
   }
 
-  public static async getVideoUrl(videoFakeId: string, seq = 0): Promise<VideoUrlResponse> {
-    if (!videoFakeId || videoFakeId === 'undefined') {
-      throw new Error('ID Video tidak valid');
+  public static async getVideoUrl(playId: string, seq = 0): Promise<VideoUrlResponse> {
+    if (!playId || playId === 'undefined') {
+      throw new Error('ID Drama/Video tidak valid');
     }
-    // The play endpoint might actually be at a different path or structure
-    // Let's try to match the base URL logic from common HLS providers
-    const url = new URL(`${API_BASE}/play/${videoFakeId}`);
+
+    // According to documentation: https://dramabos.asia/api/radreel/api/v1/play/{dramaId}?seq={index}
+    const url = new URL(`${API_BASE}/play/${playId}`);
     url.searchParams.set('lang', LANG);
     url.searchParams.set('seq', String(seq));
     
-    // Some APIs use different versions or paths
-    console.log(`🌐 [${new Date().toISOString()}] Request Video: ${url.toString()}`);
+    console.log(`🌐 Fetching Video: ${url.toString()}`);
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
-
-    if (!response.ok) {
-      // Try fallback to /play endpoint if /play/id fails
-      const fallbackUrl = new URL(`${API_BASE}/play`);
-      fallbackUrl.searchParams.set('videoFakeId', videoFakeId);
-      fallbackUrl.searchParams.set('seq', String(seq));
-      fallbackUrl.searchParams.set('lang', LANG);
+    try {
+      const response = await fetch(url.toString());
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
-      const fallbackRes = await fetch(fallbackUrl.toString());
-      if (!fallbackRes.ok) throw new Error(`HTTP ${response.status}: Video not found`);
-      return await fallbackRes.json();
-    }
+      const data = await response.json();
+      if (data.url) return data;
+      
+      // Fallback: maybe the endpoint doesn't like the ID in the path for some IDs
+      const fallbackUrl = new URL(`${API_BASE}/play`);
+      fallbackUrl.searchParams.set('videoFakeId', playId); // Sometimes it's called videoFakeId in query
+      fallbackUrl.searchParams.set('lang', LANG);
+      fallbackUrl.searchParams.set('seq', String(seq));
+      
+      console.log(`🌐 Try Fallback: ${fallbackUrl.toString()}`);
+      const fRes = await fetch(fallbackUrl.toString());
+      const fData = await fRes.json();
+      if (fData.url) return fData;
 
-    return await response.json();
+      throw new Error(data.error || fData.error || 'URL video tidak ditemukan dalam respon API');
+    } catch (err) {
+      console.error('Video API Error:', err);
+      throw err;
+    }
   }
 
   public static async getRecommendations(): Promise<RecommendResponse> {
