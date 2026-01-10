@@ -72,11 +72,36 @@ export class RadReelAPI {
   }
 
   public static async getVideoUrl(videoFakeId: string, seq = 0): Promise<VideoUrlResponse> {
-    // If videoFakeId is not available, we can't play
     if (!videoFakeId || videoFakeId === 'undefined') {
       throw new Error('ID Video tidak valid');
     }
-    return this.request<VideoUrlResponse>(`/play/${videoFakeId}`, { seq });
+    // The play endpoint might actually be at a different path or structure
+    // Let's try to match the base URL logic from common HLS providers
+    const url = new URL(`${API_BASE}/play/${videoFakeId}`);
+    url.searchParams.set('lang', LANG);
+    url.searchParams.set('seq', String(seq));
+    
+    // Some APIs use different versions or paths
+    console.log(`🌐 [${new Date().toISOString()}] Request Video: ${url.toString()}`);
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      // Try fallback to /play endpoint if /play/id fails
+      const fallbackUrl = new URL(`${API_BASE}/play`);
+      fallbackUrl.searchParams.set('videoFakeId', videoFakeId);
+      fallbackUrl.searchParams.set('seq', String(seq));
+      fallbackUrl.searchParams.set('lang', LANG);
+      
+      const fallbackRes = await fetch(fallbackUrl.toString());
+      if (!fallbackRes.ok) throw new Error(`HTTP ${response.status}: Video not found`);
+      return await fallbackRes.json();
+    }
+
+    return await response.json();
   }
 
   public static async getRecommendations(): Promise<RecommendResponse> {

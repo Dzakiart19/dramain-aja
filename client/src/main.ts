@@ -101,7 +101,7 @@ async function renderDetail(id: string) {
   const episodesRaw = Array.isArray(episodesData) ? episodesData : (episodesData.episodes || []);
   const episodes = episodesRaw.map((ep: any) => ({
     fakeId: ep.videoFakeId || ep.fakeId,
-    number: typeof ep.sequence === 'number' ? ep.sequence + 1 : ep.number,
+    number: typeof ep.sequence === 'number' ? ep.sequence + 1 : (ep.number || 1),
     title: ep.title,
     sequence: typeof ep.sequence === 'number' ? ep.sequence : 0
   }));
