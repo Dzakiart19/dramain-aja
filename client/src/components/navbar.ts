@@ -9,7 +9,11 @@ export class Navbar {
     nav.className = 'fixed top-0 left-0 right-0 bg-black/80 backdrop-blur z-50 border-b border-white/10 text-white';
     nav.innerHTML = `
       <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-        <a href="#/" class="text-xl font-bold text-red-500">DramaIn-Aja</a>
+        <a href="#/" class="text-2xl font-black tracking-tighter italic flex items-center gap-1 group">
+          <span class="text-white group-hover:text-red-500 transition-colors">DRAMA</span>
+          <span class="bg-red-600 text-white px-2 py-0.5 rounded-sm transform -skew-x-12 group-hover:bg-white group-hover:text-red-600 transition-all">IN</span>
+          <span class="text-red-500 group-hover:text-white transition-colors">AJA</span>
+        </a>
         
         <!-- Search Desktop -->
         <div class="hidden md:flex flex-1 max-w-md mx-4 relative">
