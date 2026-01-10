@@ -10,7 +10,7 @@ export class Navbar {
     nav.innerHTML = `
       <div class="container mx-auto px-4 py-3 flex items-center justify-between">
         <a href="#/" class="flex items-center gap-4 group">
-          <img src="/logo.png" class="w-14 h-14 object-contain group-hover:scale-110 transition duration-300" alt="Logo" />
+          <img src="/attached_assets/335189-removebg-preview_1768089190700.png" class="w-14 h-14 object-contain group-hover:scale-110 transition duration-300" alt="Logo" />
           <div class="flex flex-col items-start">
             <div class="text-2xl font-black tracking-tighter italic flex items-center gap-1">
               <span class="text-white group-hover:text-red-500 transition-colors">DRAMA</span>
