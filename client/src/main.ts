@@ -97,9 +97,15 @@ async function renderDetail(id: string) {
   const detail = await RadReelAPI.getDramaDetail(id);
   const episodesData = await RadReelAPI.getEpisodes(id);
   
-  // Based on logs, episodesData might have 'episodes' or be an array
-  const episodes = episodesData.episodes || (Array.isArray(episodesData) ? episodesData : []);
+  const episodesRaw = Array.isArray(episodesData) ? episodesData : (episodesData.episodes || []);
+  const episodes = episodesRaw.map((ep: any) => ({
+    fakeId: ep.videoFakeId || ep.fakeId,
+    number: typeof ep.sequence === 'number' ? ep.sequence + 1 : ep.number,
+    title: ep.title
+  }));
   
+  console.log('Mapped episodes:', episodes); // Debugging
+
   let html = `
     <div class="relative min-h-[50vh] w-full">
       <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10"></div>
@@ -115,7 +121,7 @@ async function renderDetail(id: string) {
           </div>
           <p class="text-gray-300 max-w-2xl mb-6">${detail.introduce || ''}</p>
           
-          ${episodes.length > 0 ? `
+          ${episodes.length > 0 && episodes[0].fakeId ? `
             <a href="#/play/${episodes[0].fakeId}" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold inline-flex items-center gap-2 transition">
               ▶ Play Episode 1
             </a>
@@ -128,7 +134,7 @@ async function renderDetail(id: string) {
       <h3 class="text-xl font-bold mb-4">Episodes</h3>
       <div class="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-3">
         ${episodes.map(ep => `
-          <a href="#/play/${ep.fakeId}" class="block bg-gray-900 hover:bg-gray-800 rounded p-3 transition group text-center">
+          <a href="#/play/${ep.fakeId || ''}" class="block bg-gray-900 hover:bg-gray-800 rounded p-3 transition group text-center">
             <div class="text-gray-400 text-xs mb-1">Eps</div>
             <div class="font-bold text-lg group-hover:text-red-500">${ep.number}</div>
           </a>

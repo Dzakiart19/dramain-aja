@@ -11,9 +11,12 @@ export interface Drama {
 }
 
 export interface Episode {
-  fakeId: string;
+  fakeId?: string;
+  videoFakeId?: string;
+  compilationsFakeId?: string; // Added to match logs
   number: number;
   title: string;
+  sequence?: number;
   introduce?: string;
 }
 
