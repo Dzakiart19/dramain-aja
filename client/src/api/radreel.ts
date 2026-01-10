@@ -4,7 +4,7 @@ import type {
   SearchResponse, 
   RankResponse, 
   DramaDetailResponse, 
-  EpisodesResponse, 
+  EpisodesResult, 
   VideoUrlResponse, 
   RecommendResponse 
 } from './types';
@@ -67,11 +67,15 @@ export class RadReelAPI {
     return this.request<DramaDetailResponse>(`/drama/${id}`);
   }
 
-  public static async getEpisodes(dramaId: string): Promise<EpisodesResponse> {
-    return this.request<EpisodesResponse>(`/episodes/${dramaId}`);
+  public static async getEpisodes(dramaId: string): Promise<EpisodesResult> {
+    return this.request<EpisodesResult>(`/episodes/${dramaId}`);
   }
 
   public static async getVideoUrl(videoFakeId: string, seq = 0): Promise<VideoUrlResponse> {
+    // If videoFakeId is not available, we can't play
+    if (!videoFakeId || videoFakeId === 'undefined') {
+      throw new Error('ID Video tidak valid');
+    }
     return this.request<VideoUrlResponse>(`/play/${videoFakeId}`, { seq });
   }
 

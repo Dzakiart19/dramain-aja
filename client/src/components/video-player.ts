@@ -5,9 +5,11 @@ import { RadReelAPI } from '../api/radreel';
 export class VideoPlayer {
   private player: any;
   private videoFakeId: string;
+  private seq: number;
 
-  constructor(containerId: string, videoFakeId: string) {
+  constructor(containerId: string, videoFakeId: string, seq = 0) {
     this.videoFakeId = videoFakeId;
+    this.seq = seq;
     this.init(containerId);
   }
 
@@ -15,21 +17,22 @@ export class VideoPlayer {
     const container = document.querySelector(containerId);
     if (!container) return;
     
-    // Request video URL + subtitles
     try {
-      const videoData = await RadReelAPI.getVideoUrl(this.videoFakeId, 0);
+      const videoData = await RadReelAPI.getVideoUrl(this.videoFakeId, this.seq);
 
-      // Buat video element
+      if (!videoData || !videoData.url) {
+        throw new Error("No video URL found");
+      }
+
       const videoId = `player-${this.videoFakeId}`;
       container.innerHTML = `<video id="${videoId}" class="video-js w-full h-full vjs-big-play-centered"></video>`;
 
-      // Init Video.js
       this.player = videojs(videoId, {
         controls: true,
-        autoplay: false,
-        preload: 'metadata',
+        autoplay: true,
+        preload: 'auto',
         fluid: true,
-        playbackRates: [0.5, 0.75, 1, 1.25, 1.5],
+        playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
         controlBar: {
           skipButtons: { forward: 10, backward: 10 },
           volumePanel: { inline: false },
@@ -37,13 +40,11 @@ export class VideoPlayer {
         }
       });
 
-      // Set HLS source
       this.player.src({
         src: videoData.url,
         type: 'application/x-mpegURL'
       });
 
-      // Add subtitles
       videoData.subtitles?.forEach(sub => {
         this.player.addRemoteTextTrack({
           kind: 'subtitles',
@@ -58,36 +59,42 @@ export class VideoPlayer {
       this.setupProgress();
     } catch (e) {
       console.error("Failed to load video", e);
-      container.innerHTML = `<div class="text-red-500 p-4">Error loading video. Please try again later.</div>`;
+      container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-red-500 p-4 text-center">
+        <p class="text-xl font-bold mb-2">Gagal memuat video</p>
+        <p class="text-sm opacity-70">${(e as Error).message}</p>
+        <button onclick="location.reload()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg">Coba Lagi</button>
+      </div>`;
     }
   }
 
   private setupKeyboard() {
-    document.addEventListener('keydown', (e) => {
-      if (!this.player) return;
+    const handler = (e: KeyboardEvent) => {
+      if (!this.player || !document.contains(this.player.el())) {
+        document.removeEventListener('keydown', handler);
+        return;
+      }
       
       switch(e.key) {
-        case ' ': // Space
+        case ' ':
           e.preventDefault();
           this.player.paused() ? this.player.play() : this.player.pause();
           break;
-        case 'ArrowLeft': // Skip -10s
-          this.player.currentTime(this.player.currentTime() - 10);
+        case 'ArrowLeft':
+          this.player.currentTime(Math.max(0, this.player.currentTime() - 10));
           break;
-        case 'ArrowRight': // Skip +10s
-          this.player.currentTime(this.player.currentTime() + 10);
+        case 'ArrowRight':
+          this.player.currentTime(Math.min(this.player.duration(), this.player.currentTime() + 10));
           break;
-        case 'f': // Fullscreen
-          this.player.requestFullscreen();
-          break;
-        case 'c': // Toggle subtitles
-          const tracks = this.player.textTracks();
-          for (let i = 0; i < tracks.length; i++) {
-            tracks[i].mode = tracks[i].mode === 'showing' ? 'hidden' : 'showing';
+        case 'f':
+          if (this.player.isFullscreen()) {
+            this.player.exitFullscreen();
+          } else {
+            this.player.requestFullscreen();
           }
           break;
       }
-    });
+    };
+    document.addEventListener('keydown', handler);
   }
 
   private setupProgress() {
@@ -95,16 +102,17 @@ export class VideoPlayer {
     
     this.player.on('timeupdate', () => {
       const current = this.player.currentTime();
-      const duration = this.player.duration();
-      
-      if (current > 30) { // Simpan progress setelah 30 detik
-        localStorage.setItem('dramain_progress', JSON.stringify({
-          videoId: this.videoFakeId,
-          timestamp: current,
-          duration
-        }));
+      if (current > 10) {
+        localStorage.setItem(`dramain_progress_${this.videoFakeId}`, current.toString());
       }
     });
+
+    const saved = localStorage.getItem(`dramain_progress_${this.videoFakeId}`);
+    if (saved) {
+      this.player.one('loadedmetadata', () => {
+        this.player.currentTime(parseFloat(saved));
+      });
+    }
   }
 
   destroy() {

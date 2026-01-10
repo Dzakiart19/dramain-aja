@@ -27,7 +27,8 @@ async function router() {
       await renderDetail(id);
     } else if (path.startsWith('#/play/')) {
       const id = path.split('/')[2];
-      await renderPlayer(id);
+      const seq = parseInt(params.get('seq') || '0');
+      await renderPlayer(id, seq);
     } else {
       renderNotFound();
     }
@@ -101,28 +102,29 @@ async function renderDetail(id: string) {
   const episodes = episodesRaw.map((ep: any) => ({
     fakeId: ep.videoFakeId || ep.fakeId,
     number: typeof ep.sequence === 'number' ? ep.sequence + 1 : ep.number,
-    title: ep.title
+    title: ep.title,
+    sequence: typeof ep.sequence === 'number' ? ep.sequence : 0
   }));
   
-  console.log('Mapped episodes:', episodes); // Debugging
+  console.log('Mapped episodes:', episodes);
 
   let html = `
-    <div class="relative min-h-[50vh] w-full">
-      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10"></div>
+    <div class="relative min-h-[50vh] w-full bg-black">
+      <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10"></div>
       <img src="${detail.coverImgUrl}" class="w-full h-full absolute inset-0 object-cover object-top opacity-30" />
       
       <div class="relative p-6 z-20 container mx-auto flex flex-col md:flex-row gap-6 items-end pt-24">
-        <img src="${detail.coverImgUrl}" class="w-32 md:w-48 rounded-lg shadow-2xl" />
+        <img src="${detail.coverImgUrl}" class="w-32 md:w-48 rounded-lg shadow-2xl border border-white/10" />
         <div class="flex-1">
-          <h1 class="text-4xl font-bold mb-2">${detail.title}</h1>
+          <h1 class="text-4xl font-bold mb-2 text-white">${detail.title}</h1>
           <div class="flex flex-wrap gap-2 mb-4 text-sm text-gray-300">
              <span class="bg-red-600 px-2 py-0.5 rounded text-white font-bold">${detail.uploadOfEpisodes || episodes.length} Eps</span>
-             <span>${detail.compilationsTags?.join(', ') || ''}</span>
+             <span class="bg-white/10 px-2 py-0.5 rounded">${detail.compilationsTags?.join(', ') || ''}</span>
           </div>
-          <p class="text-gray-300 max-w-2xl mb-6">${detail.introduce || ''}</p>
+          <p class="text-gray-300 max-w-2xl mb-6 text-sm md:text-base leading-relaxed">${detail.introduce || ''}</p>
           
           ${episodes.length > 0 && episodes[0].fakeId ? `
-            <a href="#/play/${episodes[0].fakeId}" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold inline-flex items-center gap-2 transition">
+            <a href="#/play/${episodes[0].fakeId}?seq=${episodes[0].sequence}" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full font-bold inline-flex items-center gap-2 transition transform hover:scale-105">
               ▶ Play Episode 1
             </a>
           ` : ''}
@@ -131,12 +133,15 @@ async function renderDetail(id: string) {
     </div>
 
     <div class="container mx-auto px-4 py-8">
-      <h3 class="text-xl font-bold mb-4">Episodes</h3>
-      <div class="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-3">
+      <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <span class="w-1 h-6 bg-red-600 rounded-full"></span>
+        Daftar Episode
+      </h3>
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
         ${episodes.map(ep => `
-          <a href="#/play/${ep.fakeId || ''}" class="block bg-gray-900 hover:bg-gray-800 rounded p-3 transition group text-center">
-            <div class="text-gray-400 text-xs mb-1">Eps</div>
-            <div class="font-bold text-lg group-hover:text-red-500">${ep.number}</div>
+          <a href="#/play/${ep.fakeId || ''}?seq=${ep.sequence}" class="block bg-white/5 hover:bg-red-600/20 border border-white/10 hover:border-red-600 rounded-lg p-3 transition group text-center">
+            <div class="text-gray-500 text-[10px] uppercase tracking-wider mb-1 group-hover:text-red-400">Episode</div>
+            <div class="font-bold text-lg group-hover:text-white">${ep.number}</div>
           </a>
         `).join('')}
       </div>
@@ -145,7 +150,7 @@ async function renderDetail(id: string) {
   app.innerHTML = html;
 }
 
-async function renderPlayer(videoFakeId: string) {
+async function renderPlayer(videoFakeId: string, seq: number) {
   let html = `
     <div class="container mx-auto px-4">
        <div id="video-container" class="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-6"></div>
@@ -155,7 +160,7 @@ async function renderPlayer(videoFakeId: string) {
     </div>
   `;
   app.innerHTML = html;
-  new VideoPlayer('#video-container', videoFakeId);
+  new VideoPlayer('#video-container', videoFakeId, seq);
 }
 
 function renderNotFound() {
