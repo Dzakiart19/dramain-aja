@@ -76,32 +76,50 @@ export class RadReelAPI {
       throw new Error('ID Drama/Video tidak valid');
     }
 
-    // According to documentation: https://dramabos.asia/api/radreel/api/v1/play/{dramaId}?seq={index}
-    const url = new URL(`${API_BASE}/play/${playId}`);
-    url.searchParams.set('lang', LANG);
-    url.searchParams.set('seq', String(seq));
-    
-    console.log(`🌐 Fetching Video: ${url.toString()}`);
+    // Direct fetch first as we saw it working in logs but parsing failed
+    const url = `${API_BASE}/play/${playId}?lang=${LANG}&seq=${seq}`;
 
     try {
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      console.log(`🌐 Fetching Video Direct: ${url}`);
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
       
-      const data = await response.json();
-      if (data.url) return data;
-      
-      // Fallback: maybe the endpoint doesn't like the ID in the path for some IDs
-      const fallbackUrl = new URL(`${API_BASE}/play`);
-      fallbackUrl.searchParams.set('videoFakeId', playId); // Sometimes it's called videoFakeId in query
-      fallbackUrl.searchParams.set('lang', LANG);
-      fallbackUrl.searchParams.set('seq', String(seq));
-      
-      console.log(`🌐 Try Fallback: ${fallbackUrl.toString()}`);
-      const fRes = await fetch(fallbackUrl.toString());
-      const fData = await fRes.json();
-      if (fData.url) return fData;
+      const text = await response.text();
+      console.log('Raw Response Preview:', text.substring(0, 100));
 
-      throw new Error(data.error || fData.error || 'URL video tidak ditemukan dalam respon API');
+      if (text.trim().startsWith('{')) {
+        const data = JSON.parse(text);
+        if (data.url || data.videoUrl) {
+          return {
+            url: data.videoUrl || data.url,
+            subtitles: data.subtitles || [],
+            title: data.title,
+            sequence: data.sequence,
+            duration: data.duration
+          };
+        }
+      }
+
+      // If direct fetch returns HTML or invalid JSON, try the proxy
+      const proxyUrl = `/api/proxy/play/${playId}?lang=${LANG}&seq=${seq}`;
+      console.log(`🌐 Falling back to Proxy: ${proxyUrl}`);
+      const proxyResponse = await fetch(proxyUrl);
+      const proxyData = await proxyResponse.json();
+      
+      if (proxyData.url || proxyData.videoUrl) {
+        return {
+          url: proxyData.videoUrl || proxyData.url,
+          subtitles: proxyData.subtitles || [],
+          title: proxyData.title,
+          sequence: proxyData.sequence,
+          duration: proxyData.duration
+        };
+      }
+
+      throw new Error(proxyData.error || 'URL video tidak ditemukan');
     } catch (err) {
       console.error('Video API Error:', err);
       throw err;
