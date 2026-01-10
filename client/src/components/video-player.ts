@@ -31,13 +31,29 @@ export class VideoPlayer {
         controls: true,
         autoplay: true,
         preload: 'auto',
-        fluid: true,
+        fluid: false, // Disable fluid to handle vertical video aspect ratio manually
         playbackRates: [0.5, 1, 1.25, 1.5, 2],
         controlBar: {
           skipButtons: { forward: 10, backward: 10 },
           volumePanel: { inline: false },
           pictureInPictureToggle: true,
+        },
+        userActions: {
+          hotkeys: true,
+          doubleClick: true
         }
+      });
+
+      // Add custom styles for the video element to handle portrait/vertical content
+      const videoElement = document.getElementById(videoId);
+      if (videoElement) {
+        videoElement.style.objectFit = 'contain';
+        videoElement.style.backgroundColor = 'black';
+      }
+
+      this.player.on('ended', () => {
+        const nextBtn = document.getElementById('next-episode-btn');
+        if (nextBtn) nextBtn.click();
       });
 
       this.player.src({

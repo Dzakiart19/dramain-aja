@@ -171,17 +171,78 @@ async function renderDetail(id: string) {
   app.innerHTML = html;
 }
 
-async function renderPlayer(videoFakeId: string, seq: number) {
+async function renderPlayer(playId: string, seq: number) {
+  const detail = await RadReelAPI.getDramaDetail(playId);
+  const episodesData = await RadReelAPI.getEpisodes(playId);
+  const episodesRaw = Array.isArray(episodesData) ? episodesData : (episodesData.episodes || []);
+  
+  const episodes = episodesRaw.map((ep: any, index: number) => ({
+    number: typeof ep.sequence === 'number' ? ep.sequence + 1 : index + 1,
+    sequence: typeof ep.sequence === 'number' ? ep.sequence : index
+  }));
+
+  const currentEp = episodes.find(e => e.sequence === seq) || episodes[0];
+  const nextEp = episodes.find(e => e.sequence === seq + 1);
+
   let html = `
-    <div class="container mx-auto px-4">
-       <div id="video-container" class="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-6"></div>
-       <button onclick="history.back()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
-          ← Kembali
-       </button>
+    <div class="container mx-auto px-4 py-6 max-w-5xl">
+       <div class="flex items-center gap-4 mb-6">
+         <button onclick="history.back()" class="bg-white/10 hover:bg-white/20 p-2 rounded-full transition">
+           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+         </button>
+         <div>
+           <h2 class="text-xl md:text-2xl font-black text-white line-clamp-1">${detail.title}</h2>
+           <p class="text-red-500 font-bold text-sm">Episode ${currentEp.number}</p>
+         </div>
+       </div>
+
+       <div id="video-container" class="w-full aspect-[9/16] md:aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl mb-8 border border-white/5 relative group">
+          <!-- Video will be injected here -->
+       </div>
+
+       <div class="flex flex-col md:flex-row gap-6 items-center justify-between bg-white/5 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
+         <div class="flex items-center gap-4">
+           <div class="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-red-600/20">
+             ${currentEp.number}
+           </div>
+           <div>
+             <div class="text-gray-400 text-xs font-bold uppercase tracking-widest">Sekarang Memutar</div>
+             <div class="text-white font-bold">Episode ${currentEp.number}</div>
+           </div>
+         </div>
+
+         <div class="flex gap-3">
+           ${seq > 0 ? `
+             <a href="#/play/${playId}?seq=${seq - 1}" class="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-2xl font-bold transition flex items-center gap-2 border border-white/5">
+               ⏮ Prev
+             </a>
+           ` : ''}
+           
+           ${nextEp ? `
+             <a id="next-episode-btn" href="#/play/${playId}?seq=${seq + 1}" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-2xl font-black transition flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-95">
+               Next Episode ⏭
+             </a>
+           ` : ''}
+         </div>
+       </div>
+
+       <div class="mt-12">
+         <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
+           <span class="w-1.5 h-6 bg-red-600 rounded-full"></span>
+           Pilih Episode
+         </h3>
+         <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+           ${episodes.map(ep => `
+             <a href="#/play/${playId}?seq=${ep.sequence}" class="block aspect-square ${ep.sequence === seq ? 'bg-red-600 text-white border-red-500 shadow-lg shadow-red-600/20' : 'bg-white/5 hover:bg-white/10 border-white/5 text-gray-400'} border rounded-2xl flex items-center justify-center transition font-black text-lg">
+               ${ep.number}
+             </a>
+           `).join('')}
+         </div>
+       </div>
     </div>
   `;
   app.innerHTML = html;
-  new VideoPlayer('#video-container', videoFakeId, seq);
+  new VideoPlayer('#video-container', playId, seq);
 }
 
 function renderNotFound() {
